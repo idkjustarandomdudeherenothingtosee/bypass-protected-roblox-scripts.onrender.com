@@ -9,6 +9,7 @@
     :root {
       --bg: #0a0a0a; --primary: #00ff88; --secondary: #00cc66; --accent: #ff00ff;
       --text: #e0ffe0; --border: #00ff88; --shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+      --error: #ff3333; --success: #00ff88;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -41,6 +42,7 @@
     button:hover {
       background: var(--secondary); transform: translateY(-3px); box-shadow: 0 0 30px rgba(0, 255, 136, 0.9);
     }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-deobf {
       background: var(--accent); color: #fff;
     }
@@ -57,11 +59,16 @@
     }
     .copy-btn {
       position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 0.9rem;
-      background: var(--primary); color: #000;
+      background: var(--primary); color: #000; border-radius: 8px;
     }
-    .status { margin-top: 15px; font-weight: bold; color: #ff0; min-height: 24px; }
+    .status { margin-top: 15px; font-weight: bold; min-height: 24px; text-align: center; }
+    .loading {
+      display: inline-block; width: 18px; height: 18px; border: 2px solid #333;
+      border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;
+    }
     footer { margin-top: auto; padding: 20px; color: #666; font-size: 0.9rem; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 600px) {
       h1 { font-size: 2rem; }
       .input-group { flex-direction: column; }
@@ -71,11 +78,11 @@
 </head>
 <body>
   <div class="container">
-    <h1>ROBLOX BYPASS + DEOBFv1</h1>
-    <p class="subtitle">Bỏ mật khẩu → Lấy script → Giải mã ASCII → Copy 1 click</p>
+    <h1>ROBLOX BYPASS + DEOBF</h1>
+    <p class="subtitle">Bỏ locker → Lấy script → Giải mã ASCII → Copy 1 click</p>
     <div class="input-group">
       <input type="text" id="urlInput" placeholder="ID hoặc link (ví dụ: 68628fd8...)" />
-      <button onclick="fetchScript()">LẤY SCRIPT</button>
+      <button onclick="fetchScript()" id="fetchBtn">LẤY SCRIPT</button>
     </div>
     <div class="output" id="output">
       <pre id="scriptContent">Nhập ID → nhấn "LẤY SCRIPT"...</pre>
@@ -90,23 +97,24 @@
     </div>
     <div class="status" id="status"></div>
   </div>
-  <footer>© 2025 Roblox Bypass + Deobf Pro – Made with [Green Heart]</footer>
+  <footer>© 2025 Roblox Bypass + Deobf Pro – Made with Green Heart</footer>
 
   <script>
-    // === BIẾN TOÀN CỤC ===
-    let currentScript = ""; // Lưu script sau khi fetch
+    let currentScript = "";
 
-    // === NHẬN DIỆN ID ===
     function extractId(input) {
       if (!input) return null;
       input = input.trim();
       if (input.includes('http')) {
-        try { return new URL(input).pathname.replace(/^\//, ''); } catch { return null; }
+        try {
+          const url = new URL(input);
+          return url.pathname.split('/').pop();
+        } catch { return null; }
       }
       return input;
     }
 
-    // === LẤY SCRIPT (DÙNG PROXY BỎ PASS) ===
+    // === LẤY SCRIPT VỚI User-Agent: Roblox/WinInet ===
     async function fetchScript() {
       const input = document.getElementById('urlInput').value;
       const id = extractId(input);
@@ -114,34 +122,45 @@
       const scriptContent = document.getElementById('scriptContent');
       const copyBtn = document.getElementById('copyBtn');
       const deobfSection = document.getElementById('deobfSection');
+      const fetchBtn = document.getElementById('fetchBtn');
 
       if (!id) {
-        status.textContent = "ID không hợp lệ!";
+        status.innerHTML = '<span style="color:var(--error)">ID không hợp lệ!</span>';
         return;
       }
 
-      status.textContent = "Đang lấy script...";
+      status.innerHTML = '<span class="loading"></span> Bỏ locker bằng Roblox/WinInet...';
+      fetchBtn.disabled = true;
+
       try {
-        // Dùng proxy bỏ pass (thay link nếu cần)
-        const proxy = "https://api.allorigins.win/get?url=";
-        const url = `https://pastebin.com/raw/${id}`;
-        const res = await fetch(proxy + encodeURIComponent(url));
-        const data = await res.json();
-        currentScript = data.contents || "";
+        // DÙNG PROXY + User-Agent đúng
+        const proxyUrl = `https://api.allorigins.win/fetch?url=${encodeURIComponent('https://raw.githubusercontent.com/xxx/xxx/main/' + id)}`;
+        const response = await fetch(proxyUrl, {
+          headers: {
+            'User-Agent': 'Roblox/WinInet',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
 
-        if (!currentScript) throw new Error("Script rỗng");
+        if (!response.ok) throw new Error('403 - Server chặn (sai repo?)');
 
-        scriptContent.textContent = currentScript;
+        const text = await response.text();
+        if (!text || text.includes('404') || text.length < 50) throw new Error('Script rỗng hoặc không tồn tại');
+
+        currentScript = text;
+        scriptContent.textContent = text;
         copyBtn.style.display = "block";
         deobfSection.style.display = "flex";
-        status.textContent = "Lấy script thành công!";
-      } catch (e) {
-        status.textContent = "Lỗi: " + e.message;
-        scriptContent.textContent = "-- Không lấy được script --";
+        status.innerHTML = '<span style="color:var(--success)">LẤY SCRIPT THÀNH CÔNG!</span>';
+      } catch (err) {
+        status.innerHTML = `<span style="color:var(--error)">Lỗi: ${err.message}</span>`;
+        scriptContent.textContent = `-- Không lấy được. Kiểm tra ID/repo hoặc thử lại --`;
+      } finally {
+        fetchBtn.disabled = false;
       }
     }
 
-    // === GIẢI MÃ ASCII CHUẨN 100% ===
+    // === GIẢI MÃ ASCII CHUẨN NHẤT ===
     function deobfuscateAscii() {
       if (!currentScript) {
         document.getElementById('status').textContent = "Chưa có script!";
@@ -158,40 +177,34 @@
       setTimeout(() => {
         let decoded = currentScript;
 
-        // B1: Giải \108\111\99...
+        // B1: \108\111\99...
         decoded = decoded.replace(/\\(\d{1,3})/g, (m, code) => {
           const num = parseInt(code, 8);
           return num >= 32 && num <= 126 ? String.fromCharCode(num) : m;
         });
 
-        // B2: Giải 108108108... (chuỗi 3 số liền nhau)
-        decoded = decoded.replace(/(\d{3})(\d{3})*/g, (match, first, rest) => {
-          let result = String.fromCharCode(parseInt(first, 8));
-          if (rest) {
-            for (let i = 0; i < rest.length; i += 3) {
-              const chunk = rest.substr(i, 3);
-              if (chunk.length === 3) {
-                const num = parseInt(chunk, 8);
-                result += num >= 32 && num <= 126 ? String.fromCharCode(num) : chunk;
-              }
+        // B2: 108108108...
+        decoded = decoded.replace(/\d{3,}/g, match => {
+          let result = '';
+          for (let i = 0; i < match.length; i += 3) {
+            if (i + 2 < match.length) {
+              const code = match.substr(i, 3);
+              const num = parseInt(code, 8);
+              result += num >= 32 && num <= 126 ? String.fromCharCode(num) : code;
+            } else {
+              result += match.substr(i);
             }
           }
           return result;
         });
 
-        // B3: Dọn loadstring
-        decoded = decoded.replace(/loadstring\("([^"]*)"\)/g, (m, inner) => {
-          return `loadstring("${inner}") -- [DEOBF]`;
-        });
-
         deobfContent.textContent = decoded;
         deobfOutput.style.display = "block";
         copyDeobfBtn.style.display = "block";
-        status.textContent = "GIẢI MÃ ASCII THÀNH CÔNG!";
+        status.innerHTML = '<span style="color:var(--success)">GIẢI MÃ ASCII HOÀN HẢO!</span>';
       }, 300);
     }
 
-    // === COPY ===
     function copyScript() {
       navigator.clipboard.writeText(currentScript);
       const btn = document.getElementById('copyBtn');
@@ -207,7 +220,6 @@
       setTimeout(() => btn.textContent = "COPY DEOBF", 1500);
     }
 
-    // === ENTER KEY ===
     document.getElementById('urlInput').addEventListener('keypress', e => {
       if (e.key === 'Enter') fetchScript();
     });
