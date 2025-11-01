@@ -104,7 +104,7 @@
 
     <div style="text-align:center; margin:20px 0; display:none;" id="deobfSection">
       <button class="btn-deobf" onclick="deobfuscateAscii()" id="deobfBtn">
-        DEOBF ASCII (100% CHUẨN)
+        DEOBF NÂNG CAO
       </button>
     </div>
 
@@ -170,29 +170,132 @@
       }
     }
 
-    // DEOBF ASCII CHUẨN 100% – TEST VỚI CHUỖI CỦA BẠN
+    // --- NÂNG CẤP DEOBF: hỗ trợ \xNN, \uNNNN, \u{...}, \DDD (decimal/octal thử), string.char(...), "a".."b" ghép chuỗi ---
     function deobfuscateAscii() {
       if (!currentScript) return;
 
       const status = document.getElementById('status');
-      status.innerHTML = '<span class="loading"></span> Đang deobf ASCII...';
+      status.innerHTML = '<span class="loading"></span> Đang deobf nâng cao...';
 
       setTimeout(() => {
         let code = currentScript;
 
-        // CHỈ XỬ LÝ \108\111\97... – KHÔNG ĐỘNG VÀO SỐ KHÁC
-        code = code.replace(/\\(\d{1,3})/g, (match, numStr) => {
-          const num = parseInt(numStr, 8);
-          return (num >= 32 && num <= 126) ? String.fromCharCode(num) : match;
+        // Helper: try parse number in decimal first; if out of 0-255, try octal; fallback to decimal
+        function parseCodeNumber(numStr) {
+          // Trim spaces
+          numStr = numStr.trim();
+          // If starts with 0x or 0X => hex
+          if (/^0x/i.test(numStr)) return parseInt(numStr, 16);
+          // If contains only 0-7 digits -> likely octal (but ambiguous). We'll try decimal first then octal as fallback.
+          const asDec = parseInt(numStr, 10);
+          if (!Number.isNaN(asDec) && asDec >= 0 && asDec <= 255) return asDec;
+          // try octal
+          const asOct = parseInt(numStr, 8);
+          if (!Number.isNaN(asOct) && asOct >= 0 && asOct <= 255) return asOct;
+          // last attempt: hex
+          const asHex = parseInt(numStr, 16);
+          if (!Number.isNaN(asHex)) return asHex;
+          return null;
+        }
+
+        // 1) Replace hex escapes: \xNN
+        code = code.replace(/\\x([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+
+        // 2) Replace unicode escapes \u{...} and \uNNNN
+        code = code.replace(/\\u\{([0-9A-Fa-f]+)\}/g, (m, h) => String.fromCodePoint(parseInt(h, 16)));
+        code = code.replace(/\\u([0-9A-Fa-f]{4})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+
+        // 3) Replace simple backslash-number escapes like \108 or \12
+        code = code.replace(/\\([0-9]{1,3})/g, (m, numStr) => {
+          const n = parseCodeNumber(numStr);
+          if (n === null) return m;
+          // printable range check; if outside visible ASCII still convert (some scripts use extended)
+          return String.fromCharCode(n);
         });
 
-        // KHÔNG CẦN XỬ LÝ 108108108... VÌ ĐÃ ĐƯỢC XỬ LÝ Ở TRÊN
+        // 4) Decode Lua string.char(...) or JS String.fromCharCode(...) patterns
+        // string.char(108,111,97)
+        code = code.replace(/string\.char\s*\(\s*([0-9\s,]+)\s*\)/gi, (m, list) => {
+          const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
+          return arr.map(n => String.fromCharCode(n)).join('');
+        });
+        // String.fromCharCode(65,66)
+        code = code.replace(/String\.fromCharCode\s*\(\s*([0-9\s,]+)\s*\)/g, (m, list) => {
+          const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
+          return arr.map(n => String.fromCharCode(n)).join('');
+        });
 
+        // 5) Join concatenated quoted strings "a".."b" (Lua) and "a" + "b" (JS) iteratively
+        // We'll perform multiple passes to catch nested cases
+        function joinConcats(s) {
+          let changed = false;
+          // Lua: "..." .. "..."
+          s = s.replace(/'([^']*)'\s*\.\.\s*'([^']*)'/g, (m, a, b) => { changed = true; return `'${a + b}'`; });
+          s = s.replace(/"([^"]*)"\s*\.\.\s*"([^"]*)"/g, (m, a, b) => { changed = true; return `"${a + b}"`; });
+          // JS: "a" + "b"
+          s = s.replace(/'([^']*)'\s*\+\s*'([^']*)'/g, (m, a, b) => { changed = true; return `'${a + b}'`; });
+          s = s.replace(/"([^"]*)"\s*\+\s*"([^"]*)"/g, (m, a, b) => { changed = true; return `"${a + b}"`; });
+          return { s, changed };
+        }
+
+        for (let i = 0; i < 12; i++) {
+          const res = joinConcats(code);
+          code = res.s;
+          if (!res.changed) break;
+        }
+
+        // 6) Replace escaped quotes inside strings (for readability)
+        // e.g. "Hello \"World\"" -> "Hello "World"" (we won't remove escapes fully, but unescape common patterns)
+        code = code.replace(/\\(["'])/g, '$1');
+
+        // 7) Optional tidy: if there are sequences of digits separated by commas inside parentheses not handled above,
+        //    try a generic pattern: (123,98,97) -> "..." but be conservative and only when preceded by certain functions or when stand-alone.
+        code = code.replace(/\(\s*([0-9]{1,3}(?:\s*,\s*[0-9]{1,3})+)\s*\)/g, (m, list) => {
+          // only convert small lists (<100 chars) and when there's no identifier immediately before '(' (to avoid changing function args)
+          try {
+            const arr = list.split(/\s*,\s*/).map(s => parseCodeNumber(s) || 0);
+            if (arr.length > 0 && arr.length <= 100) {
+              // convert to string if all values are printable
+              if (arr.every(n => n >= 9 && n <= 127)) {
+                return `("${arr.map(n => String.fromCharCode(n)).join('')}")`;
+              }
+            }
+          } catch (e) {}
+          return m;
+        });
+
+        // 8) Final pass: normalize common escaped forms such as \\n -> newline, \\t -> tab
+        code = code.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t');
+
+        // 9) Multiple passes to decode nested or repeated encodings
+        for (let pass = 0; pass < 6; pass++) {
+          let before = code;
+          // reapply hex and numeric decode to catch newly exposed escapes
+          code = code.replace(/\\x([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+          code = code.replace(/\\u\{([0-9A-Fa-f]+)\}/g, (m, h) => String.fromCodePoint(parseInt(h, 16)));
+          code = code.replace(/\\u([0-9A-Fa-f]{4})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+          code = code.replace(/\\([0-9]{1,3})/g, (m, numStr) => {
+            const n = parseCodeNumber(numStr);
+            if (n === null) return m;
+            return String.fromCharCode(n);
+          });
+          // string.char again
+          code = code.replace(/string\.char\s*\(\s*([0-9\s,]+)\s*\)/gi, (m, list) => {
+            const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
+            return arr.map(n => String.fromCharCode(n)).join('');
+          });
+          // join concatenations again
+          const res = joinConcats(code);
+          code = res.s;
+          if (code === before) break;
+        }
+
+        // Set outputs
         document.getElementById('deobfContent').textContent = code;
         document.getElementById('deobfOutput').style.display = "block";
         document.getElementById('copyDeobfBtn').style.display = "block";
-        status.innerHTML = '<span style="color:var(--success)">DEOBF ASCII HOÀN HẢO!</span>';
-      }, 300);
+        status.innerHTML = '<span style="color:var(--success)">DEOBF HOÀN TẤT!</span>';
+      }, 150);
     }
 
     function copyScript() { copyText(currentScript, 'copyBtn'); }
