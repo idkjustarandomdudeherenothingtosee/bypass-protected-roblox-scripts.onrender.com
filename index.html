@@ -116,105 +116,47 @@
 
   <script>
     // === NHẬN DIỆN ID ===
-    function extractId(input) {
-      if (!input) return null;
-      input = input.trim();
-      if (input.includes('http')) {
-        try { return new URL(input).pathname.replace(/^\//, ''); } catch { return null; }
-      }
-      return input;
-    }
+// === GIẢI MÃ ASCII (\8, \9, \10, \13, \108, tab, space, ký tự lạ...) ===
+function deobfuscateAscii() {
+  const script = window.currentScript || "";
+  const deobfOutput = document.getElementById('deobfOutput');
+  const deobfContent = document.getElementById('deobfContent');
+  const copyDeobfBtn = document.getElementById('copyDeobfBtn');
+  const status = document.getElementById('status');
 
-    // === LẤY SCRIPT ===
-    async function fetchScript() {
-      const rawInput = document.getElementById('urlInput').value;
-      const id = extractId(rawInput);
-      const status = document.getElementById('status');
-      const output = document.getElementById('scriptContent');
-      const copyBtn = document.getElementById('copyBtn');
-      const deobfSection = document.getElementById('deobfSection');
+  // Tìm tất cả chuỗi loadstring("...")
+  const loadstringRegex = /loadstring\("([^"]*)"\)/g;
+  let hasMatch = false;
+  let decodedScript = script;
 
-      if (!id) {
-        status.innerHTML = "🔴 Nhập ID hợp lệ!";
-        return;
-      }
-
-      status.innerHTML = "⏳ Đang lấy...";
-      output.textContent = "Loading...";
-      copyBtn.style.display = "none";
-      deobfSection.style.display = "none";
-
-      try {
-        const res = await fetch(`/.netlify/functions/proxy/${id}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-
-        output.textContent = text;
-        window.currentScript = text;
-        copyBtn.style.display = "block";
-        deobfSection.style.display = "flex";
-        status.innerHTML = `✅ Đã lấy script từ: <code>${id}</code>`;
-      } catch (err) {
-        output.textContent = "Lỗi lấy script.";
-        status.innerHTML = `🔴 Lỗi: ${err.message}`;
-      }
-    }
-
-    // === GIẢI MÃ ASCII (\108\111\99...) ===
-    function deobfuscateAscii() {
-      const script = window.currentScript || "";
-      const deobfOutput = document.getElementById('deobfOutput');
-      const deobfContent = document.getElementById('deobfContent');
-      const copyDeobfBtn = document.getElementById('copyDeobfBtn');
-      const status = document.getElementById('status');
-
-      // Tìm tất cả chuỗi \xxx
-      const asciiRegex = /"\\(\d{3})\\(\d{3})[^"]*"/g;
-      let decoded = script;
-
-      const matches = script.match(asciiRegex);
-      if (!matches || matches.length === 0) {
-        deobfContent.textContent = "Không tìm thấy chuỗi ASCII để giải mã.";
-        copyDeobfBtn.style.display = "none";
-        deobfOutput.style.display = "block";
-        return;
-      }
-
-      // Giải mã từng chuỗi
-      decoded = script.replace(asciiRegex, (match) => {
-        return match.replace(/\\(\d{3})/g, (m, code) => String.fromCharCode(parseInt(code, 8)));
+  decodedScript = script.replace(loadstringRegex, (match, encoded) => {
+    hasMatch = true;
+    try {
+      // Cách 1: Dùng eval để giải mã chính xác \8, \9, \10, \13, tab, space...
+      const decoded = eval(`"${encoded}"`);
+      return `loadstring("${decoded}")`;
+    } catch (e) {
+      // Cách 2: Nếu eval lỗi → dùng parse octal thủ công
+      const manual = encoded.replace(/\\(\d{1,3})/g, (m, code) => {
+        const num = parseInt(code, 8);
+        return num >= 32 && num <= 126 ? String.fromCharCode(num) : m;
       });
-
-      deobfContent.textContent = decoded;
-      window.deobfScript = decoded;
-      copyDeobfBtn.style.display = "block";
-      deobfOutput.style.display = "block";
-      status.innerHTML = "⚡ Đã giải mã ASCII thành công!";
+      return `loadstring("${manual}")`;
     }
+  });
 
-    function copyScript() {
-      navigator.clipboard.writeText(window.currentScript || "");
-      alert("✅ ĐÃ COPY SCRIPT GỐC!");
-    }
+  if (!hasMatch) {
+    deobfContent.textContent = "Không tìm thấy loadstring để giải mã.";
+    copyDeobfBtn.style.display = "none";
+  } else {
+    deobfContent.textContent = decodedScript;
+    window.deobfScript = decodedScript;
+    copyDeobfBtn.style.display = "block";
+    status.innerHTML = "⚡ ĐÃ GIẢI MÃ ASCII HOÀN HẢO!";
+  }
 
-    function copyDeobf() {
-      navigator.clipboard.writeText(window.deobfScript || "");
-      alert("✅ ĐÃ COPY SCRIPT ĐÃ GIẢI MÃ!");
-    }
-
-    // === NHẤN ENTER ===
-    document.getElementById('urlInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') fetchScript();
-    });
-
-    // === TỰ ĐỘNG LOAD KHI MỞ TRANG ===
-    window.addEventListener('load', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlId = urlParams.get('id');
-      if (urlId) {
-        document.getElementById('urlInput').value = urlId;
-        fetchScript();
-      }
+  deobfOutput.style.display = "block";
+}
     });
   </script>
 </body>
