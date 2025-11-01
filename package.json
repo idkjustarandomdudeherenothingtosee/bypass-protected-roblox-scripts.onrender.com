@@ -1,0 +1,9 @@
+{
+  "name": "roblox-bypass-proxy",
+  "version": "1.0.0",
+  "description": "Bypass mật khẩu script Roblox",
+  "main": "functions/proxy.js",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
