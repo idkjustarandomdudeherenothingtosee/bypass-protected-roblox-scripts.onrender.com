@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ROBLOX BYPASS + DEOBF PRO</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -14,10 +15,12 @@
       --text: #e0ffe0;
       --border: #00ff88;
       --shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+      --error: #ff3333;
+      --success: #00ff88;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: var(--bg);
+      background: linear-gradient(135deg, #0a0a0a 0%, #001a0d 100%);
       color: var(--text);
       font-family: 'Roboto Mono', monospace;
       min-height: 100vh;
@@ -27,161 +30,269 @@
       padding: 20px;
       overflow-x: hidden;
     }
-    .container { width: 100%; max-width: 900px; margin: 20px auto; text-align: center; }
+    .container { width: 100%; max-width: 1000px; margin: 20px auto; text-align: center; }
     h1 {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2.8rem;
+      font-size: 3rem;
       color: var(--primary);
       text-shadow: var(--shadow);
-      margin-bottom: 10px;
-      animation: pulse 2s infinite;
+      margin-bottom: 8px;
+      animation: glow 2s ease-in-out infinite alternate;
     }
-    .subtitle { color: #88ffaa; font-size: 1.1rem; margin-bottom: 30px; }
+    .subtitle { 
+      color: #88ffaa; 
+      font-size: 1.2rem; 
+      margin-bottom: 30px; 
+      font-weight: 500;
+    }
     .input-group {
-      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
     }
     input[type="text"] {
-      flex: 1; min-width: 280px; padding: 14px 18px; background: #111; border: 2px solid var(--border);
-      border-radius: 12px; color: var(--primary); font-size: 1rem; outline: none; transition: all 0.3s;
-      box-shadow: var(--shadow);
+      flex: 1; min-width: 300px; padding: 16px 20px; background: #111; 
+      border: 2px solid var(--border); border-radius: 14px; color: var(--primary); 
+      font-size: 1.1rem; outline: none; transition: all 0.3s; box-shadow: var(--shadow);
     }
     input[type="text"]:focus {
       border-color: var(--secondary);
-      box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.9);
+      transform: scale(1.01);
     }
     button {
-      padding: 14px 30px; background: var(--primary); color: #000; border: none; border-radius: 12px;
-      font-weight: bold; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: var(--shadow);
-      min-width: 140px;
+      padding: 16px 32px; background: var(--primary); color: #000; border: none; 
+      border-radius: 14px; font-weight: bold; font-size: 1.1rem; cursor: pointer; 
+      transition: all 0.3s; box-shadow: var(--shadow); min-width: 160px; display: flex; 
+      align-items: center; justify-content: center; gap: 8px;
     }
     button:hover {
-      background: var(--secondary); transform: translateY(-3px); box-shadow: 0 0 30px rgba(0, 255, 136, 0.9);
+      background: var(--secondary); transform: translateY(-4px); 
+      box-shadow: 0 0 35px rgba(0, 255, 136, 1);
+    }
+    button:disabled {
+      background: #333; cursor: not-allowed; opacity: 0.6;
     }
     .btn-deobf {
       background: var(--accent); color: #fff;
     }
     .btn-deobf:hover {
-      background: #cc00cc; box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+      background: #cc00cc; box-shadow: 0 0 35px rgba(255, 0, 255, 0.8);
     }
     .output {
-      background: #111; border: 2px solid var(--border); border-radius: 12px; padding: 20px;
-      margin-top: 20px; min-height: 200px; text-align: left; position: relative; box-shadow: var(--shadow);
-      overflow: auto; max-height: 60vh;
+      background: #111; border: 2px solid var(--border); border-radius: 16px; 
+      padding: 24px; margin-top: 20px; min-height: 220px; text-align: left; 
+      position: relative; box-shadow: var(--shadow); overflow: auto; max-height: 60vh;
+      transition: all 0.3s;
     }
     pre {
-      white-space: pre-wrap; word-wrap: break-word; color: var(--text); font-size: 0.95rem; line-height: 1.5;
+      white-space: pre-wrap; word-wrap: break-word; color: var(--text); 
+      font-size: 1rem; line-height: 1.6; margin: 0;
     }
     .copy-btn {
-      position: absolute; top: 10px; right: 10px; padding: 8px 16px; font-size: 0.9rem;
-      background: var(--primary); color: #000;
+      position: absolute; top: 12px; right: 12px; padding: 10px 18px; 
+      font-size: 0.95rem; background: var(--primary); color: #000; border-radius: 10px;
+      transition: all 0.2s;
     }
-    .status { margin-top: 15px; font-weight: bold; color: #ff0; min-height: 24px; }
+    .copy-btn:hover { background: var(--secondary); }
+    .status { 
+      margin-top: 16px; font-weight: bold; min-height: 28px; 
+      font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .loading {
+      display: inline-block; width: 20px; height: 20px; border: 3px solid #333;
+      border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite;
+    }
     footer { margin-top: auto; padding: 20px; color: #666; font-size: 0.9rem; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-    @media (max-width: 600px) {
-      h1 { font-size: 2rem; }
+    @keyframes glow { from { text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); } to { text-shadow: 0 0 30px rgba(0, 255, 136, 0.9); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 700px) {
+      h1 { font-size: 2.2rem; }
       .input-group { flex-direction: column; }
-      input[type="text"], button { width: 100%; }
+      input[type="text"], button { width: 100%; min-width: unset; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>ROBLOX BYPASS + DEOBFv1</h1>
-    <p class="subtitle">Bỏ mật khẩu → Lấy script → Giải mã ASCII → Copy 1 click</p>
-
+    <h1>ROBLOX DEOBF PRO</h1>
+    <p class="subtitle">Bỏ pass → Lấy script → Giải mã ASCII (\\108 & 108108108) → Copy 1 click</p>
+    
     <div class="input-group">
-      <input type="text" id="urlInput" placeholder="ID hoặc link (ví dụ: 68628fd8...)" />
-      <button onclick="fetchScript()">LẤY SCRIPT</button>
+      <input type="text" id="urlInput" placeholder="Nhập ID hoặc link (ví dụ: 68628fd8...)" />
+      <button onclick="fetchScript()" id="fetchBtn">
+        <i class="fas fa-download"></i> LẤY SCRIPT
+      </button>
     </div>
 
     <div class="output" id="output">
-      <pre id="scriptContent">Nhập ID → nhấn "LẤY SCRIPT"...</pre>
-      <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">COPY</button>
+      <pre id="scriptContent">Nhập ID → nhấn "LẤY SCRIPT" để bắt đầu...</pre>
+      <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">
+        <i class="fas fa-copy"></i> COPY
+      </button>
     </div>
 
-    <div class="input-group" style="margin-top:10px; display:none;" id="deobfSection">
-      <button class="btn-deobf" onclick="deobfuscateAscii()">DEOBFUSCATE ASCII</button>
+    <div class="input-group" style="margin-top:15px; justify-content: center;" id="deobfSection" style="display:none;">
+      <button class="btn-deobf" onclick="deobfuscateAscii()" id="deobfBtn">
+        <i class="fas fa-magic"></i> DEOBFUSCATE ASCII
+      </button>
     </div>
 
-    <div class="output" id="deobfOutput" style="display:none; margin-top:20px;">
-      <pre id="deobfContent">...</pre>
-      <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">COPY DEOBF</button>
+    <div class="output" id="deobfOutput" style="display:none;">
+      <pre id="deobfContent">Kết quả giải mã sẽ hiện ở đây...</pre>
+      <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">
+        <i class="fas fa-copy"></i> COPY DEOBF
+      </button>
     </div>
 
     <div class="status" id="status"></div>
   </div>
 
-  <footer>© 2025 Roblox Bypass + Deobf Pro – Made with [Green Heart]</footer>
+  <footer>© 2025 Roblox Deobf Pro – Made with <span style="color:#00ff88">Green Heart</span></footer>
 
   <script>
-    // === NHẬN DIỆN ID ===
+    // === BIẾN TOÀN CỤC ===
+    let currentScript = "";
+
+    // === LẤY ID TỪ LINK HOẶC ID TRỰC TIẾP ===
     function extractId(input) {
       if (!input) return null;
       input = input.trim();
       if (input.includes('http')) {
-        try { return new URL(input).pathname.replace(/^\//, ''); } catch { return null; }
+        try {
+          const url = new URL(input);
+          return url.pathname.split('/').pop() || url.searchParams.get('id');
+        } catch { return null; }
       }
-      return input;
+      return input.length >= 8 ? input : null;
     }
 
-      // === GIẢI MÃ ASCII SIÊU MẠNH (HỖ TRỢ CẢ \108 VÀ 108108108...) ===
-      function deobfuscateAscii() {
-        const script = window.currentScript || "";
-        const deobfOutput = document.getElementById('deobfOutput');
-        const deobfContent = document.getElementById('deobfContent');
-        const copyDeobfBtn = document.getElementById('copyDeobfBtn');
-        const status = document.getElementById('status');
-      
-        let decodedScript = script;
-        let hasMatch = false;
-      
-        // === BƯỚC 1: Tìm loadstring("...")
-        const loadstringRegex = /loadstring\("([^"]*)"\)/g;
-        decodedScript = script.replace(loadstringRegex, (match, encoded) => {
-          hasMatch = true;
-      
-          // === BƯỚC 2: Giải mã kiểu \108\111\99...
-          let decoded = encoded.replace(/\\(\d{1,3})/g, (m, code) => {
-            const num = parseInt(code, 8);
-            return num >= 32 && num <= 126 ? String.fromCharCode(num) : m;
-          });
-      
-          // === BƯỚC 3: Giải mã kiểu 108108108... (không có \)
-          // Tìm dãy số 3 chữ số liền nhau
-          decoded = decoded.replace(/(\d{3})(\d{3})*/g, (m, first, rest) => {
-            let result = String.fromCharCode(parseInt(first, 8));
-            if (rest) {
-              for (let i = 0; i < rest.length; i += 3) {
-                const code = rest.substr(i, 3);
-                if (code.length === 3) {
-                  const num = parseInt(code, 8);
-                  if (num >= 32 && num <= 126) {
-                    result += String.fromCharCode(num);
-                  } else {
-                    result += code;
-                  }
-                }
-              }
-            }
-            return result;
-          });
-      
-          return `loadstring("${decoded}")`;
-        });
-      
-        if (!hasMatch) {
-          deobfContent.textContent = "Không tìm thấy loadstring để giải mã.";
-          copyDeobfBtn.style.display = "none";
-        } else {
-          deobfContent.textContent = decodedScript;
-          window.deobfScript = decodedScript;
-          copyDeobfBtn.style.display = "block";
-          status.innerHTML = "GIẢI MÃ ASCII THÀNH CÔNG – ĐÃ SẠCH!";
-        }
-      
-        deobfOutput.style.display = "block";
+    // === LẤY SCRIPT TỪ ROBLOX (BỎ QUA PASS) ===
+    async function fetch |fetchScript() {
+      const input = document.getElementById('urlInput').value;
+      const status = document.getElementById('status');
+      const output = document.getElementById('scriptContent');
+      const copyBtn = document.getElementById('copyBtn');
+      const deobfSection = document.getElementById('deobfSection');
+      const fetchBtn = document.getElementById('fetchBtn');
+
+      const id = extractId(input);
+      if (!id) {
+        status.innerHTML = '<span style="color:var(--error)">ID không hợp lệ!</span>';
+        return;
       }
+
+      status.innerHTML = '<span class="loading"></span> Đang lấy script...';
+      fetchBtn.disabled = true;
+
+      try {
+        // Dùng API công khai để bypass (có thể thay bằng proxy nếu cần)
+        const response = await fetch(`https://raw.githubusercontent.com/robloxapi/asset-delivery/main/${id}.lua`);
+        if (!response.ok) throw new Error("Không tìm thấy script hoặc bị chặn");
+
+        const text = await response.text();
+        currentScript = text;
+
+        output.textContent = text || "-- Script rỗng --";
+        copyBtn.style.display = "block";
+        deobfSection.style.display = "flex";
+        status.innerHTML = '<span style="color:var(--success)">Lấy script thành công!</span>';
+      } catch (err) {
+        status.innerHTML = `<span style="color:var(--error)">Lỗi: ${err.message}</span>`;
+        output.textContent = "Không thể lấy script. Kiểm tra ID hoặc kết nối.";
+      } finally {
+        fetchBtn.disabled = false;
+      }
+    }
+
+    // === GIẢI MÃ ASCII CHUẨN NHẤT (HỖ TRỢ CẢ \108 VÀ 108108108...) ===
+    function deobfuscateAscii() {
+      if (!currentScript) {
+        document.getElementById('status').innerHTML = '<span style="color:var(--error)">Chưa có script để giải mã!</span>';
+        return;
+      }
+
+      const status = document.getElementById('status');
+      const deobfContent = document.getElementById('deobfContent');
+      const deobfOutput = document.getElementById('deobfOutput');
+      const copyDeobfBtn = document.getElementById('copyDeobfBtn');
+
+      status.innerHTML = '<span class="loading"></span> Đang giải mã ASCII...';
+
+      setTimeout(() => {
+        let decoded = currentScript;
+
+        // === BƯỚC 1: Giải \108\111\99... (octal escape) ===
+        decoded = decoded.replace(/\\(\d{1,3})/g, (match, code) => {
+          const num = parseInt(code, 8);
+          return (num >= 32 && num <= 126) ? String.fromCharCode(num) : match;
+        });
+
+        // === BƯỚC 2: Giải 108108108... (chuỗi số 3 chữ số liền nhau) ===
+        decoded = decoded.replace(/\d{3,}/g, (match) => {
+          let result = '';
+          for (let i = 0; i < match.length; i += 3) {
+            if (i + 2 < match.length) {
+              const code = match.substr(i, 3);
+              const num = parseInt(code, 8);
+              if (num >= 32 && num <= 126) {
+                result += String.fromCharCode(num);
+              } else {
+                result += code;
+              }
+            } else {
+              result += match.substr(i);
+            }
+          }
+          return result;
+        });
+
+        // === BƯỚC 3: Thay loadstring("...") nếu cần ===
+        const loadstringMatch = decoded.match(/loadstring\(['"]([^'"]+)['"]\)/);
+        if (loadstringMatch) {
+          const inner = loadstringMatch[1];
+          const finalInner = inner.replace(/\\(\d{1,3})/g, (m, c) => {
+            const n = parseInt(c, 8);
+            return n >= 32 && n <= 126 ? String.fromCharCode(n) : m;
+          }).replace(/\d{3,}/g, m => {
+            let r = '';
+            for (let i = 0; i < m.length; i += 3) {
+              if (i + 2 < m.length) {
+                const n = parseInt(m.substr(i, 3), 8);
+                r += n >= 32 && n <= 126 ? String.fromCharCode(n) : m.substr(i, 3);
+              } else r += m.substr(i);
+            }
+            return r;
+          });
+          decoded = decoded.replace(loadstringMatch[0], `loadstring([==[${finalInner}]==])`);
+        }
+
+        deobfContent.textContent = decoded;
+        window.deobfScript = decoded;
+        copyDeobfBtn.style.display = "block";
+        deobfOutput.style.display = "block";
+        status.innerHTML = '<span style="color:var(--success)">GIẢI MÃ ASCII HOÀN HẢO!</span>';
+      }, 300);
+    }
+
+    // === COPY SCRIPT ===
+    function copyScript() {
+      navigator.clipboard.writeText(currentScript);
+      const btn = document.getElementById('copyBtn');
+      const old = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> ĐÃ COPY!';
+      setTimeout(() => btn.innerHTML = old, 2000);
+    }
+
+    function copyDeobf() {
+      navigator.clipboard.writeText(window.deobfScript || "");
+      const btn = document.getElementById('copyDeobfBtn');
+      const old = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> ĐÃ COPY!';
+      setTimeout(() => btn.innerHTML = old, 2000);
+    }
+
+    // === ENTER KEY ===
+    document.getElementById('urlInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') fetchScript();
     });
   </script>
 </body>
