@@ -89,29 +89,29 @@
     </header>
 
     <div class="input-group">
-      <input type="text" id="urlInput" placeholder="ID hoặc link (68628fd8... hoặc access/0507...)" />
+      <input type="text" id="urlInput" placeholder="ID hoặc link (68628fd8...)" />
       <button onclick="fetchScript()" id="fetchBtn">
-        <i class="fas fa-rocket"></i> LẤY SCRIPT
+        LẤY SCRIPT
       </button>
     </div>
 
     <div class="output" id="output">
       <pre id="scriptContent">-- Nhập ID → nhấn "LẤY SCRIPT"...</pre>
       <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">
-        <i class="fas fa-copy"></i> COPY
+        COPY
       </button>
     </div>
 
     <div style="text-align:center; margin:20px 0; display:none;" id="deobfSection">
       <button class="btn-deobf" onclick="deobfuscateAscii()" id="deobfBtn">
-        <i class="fas fa-magic"></i> DEOBFUSCATE ASCII
+        DEOBFUSCATE ASCII
       </button>
     </div>
 
     <div class="output" id="deobfOutput" style="display:none;">
       <pre id="deobfContent">-- Kết quả sẽ hiện ở đây...</pre>
       <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">
-        <i class="fas fa-copy"></i> COPY DEOBF
+        COPY DEOBF
       </button>
     </div>
 
@@ -124,7 +124,7 @@
     let currentScript = "";
     const DEFAULT_ID = "68628fd825ffaab7dc9a853c63e73f23";
 
-    // Auto fill default
+    // Auto fill
     document.getElementById('urlInput').value = DEFAULT_ID;
 
     function getId() {
@@ -147,24 +147,26 @@
       const deobfSection = document.getElementById('deobfSection');
       const fetchBtn = document.getElementById('fetchBtn');
 
-      status.innerHTML = '<span class="loading"></span> Đang bypass locker...';
+      status.innerHTML = '<span class="loading"></span> Đang bypass...';
       fetchBtn.disabled = true;
 
       try {
         const res = await fetch(api);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text().trim();
 
-        if (!text || text.includes('404') || text.length < 50) throw new Error('Script rỗng hoặc sai ID');
+        // SỬA LỖI: DÙNG (await res.text()).trim()
+        const text = (await res.text()).trim();
+
+        if (!text || text.length < 50) throw new Error('Script rỗng');
 
         currentScript = text;
         output.textContent = text;
         copyBtn.style.display = "block";
         deobfSection.style.display = "block";
-        status.innerHTML = '<span style="color:var(--success)">THÀNH CÔNG! Script đã sẵn sàng.</span>';
+        status.innerHTML = '<span style="color:var(--success)">THÀNH CÔNG!</span>';
       } catch (err) {
         status.innerHTML = `<span style="color:var(--error)">Lỗi: ${err.message}</span>`;
-        output.textContent = `-- Không lấy được script. Kiểm tra ID hoặc Netlify proxy --`;
+        output.textContent = `-- Không lấy được script --`;
       } finally {
         fetchBtn.disabled = false;
       }
@@ -174,18 +176,18 @@
       if (!currentScript) return;
 
       const status = document.getElementById('status');
-      status.innerHTML = '<span class="loading"></span> Đang giải mã ASCII...';
+      status.innerHTML = '<span class="loading"></span> Đang giải mã...';
 
       setTimeout(() => {
         let decoded = currentScript;
 
-        // \108\111\99...
+        // \108
         decoded = decoded.replace(/\\(\d{1,3})/g, (m, c) => {
           const n = parseInt(c, 8);
           return n >= 32 && n <= 126 ? String.fromCharCode(n) : m;
         });
 
-        // 108108108...
+        // 108108108
         decoded = decoded.replace(/\d{3,}/g, m => {
           let r = '';
           for (let i = 0; i < m.length; i += 3) {
@@ -200,7 +202,7 @@
         document.getElementById('deobfContent').textContent = decoded;
         document.getElementById('deobfOutput').style.display = "block";
         document.getElementById('copyDeobfBtn').style.display = "block";
-        status.innerHTML = '<span style="color:var(--success)">GIẢI MÃ ASCII HOÀN HẢO!</span>';
+        status.innerHTML = '<span style="color:var(--success)">GIẢI MÃ HOÀN HẢO!</span>';
       }, 400);
     }
 
@@ -210,11 +212,10 @@
       navigator.clipboard.writeText(text);
       const btn = document.getElementById(btnId);
       const old = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check"></i> ĐÃ COPY!';
+      btn.innerHTML = 'ĐÃ COPY!';
       setTimeout(() => btn.innerHTML = old, 2000);
     }
 
-    // Enter key
     document.getElementById('urlInput').addEventListener('keypress', e => {
       if (e.key === 'Enter') fetchScript();
     });
