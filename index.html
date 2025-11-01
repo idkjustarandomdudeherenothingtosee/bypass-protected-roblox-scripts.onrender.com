@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔓 ROBLOX BYPASS + DEOBF PRO</title>
+  <title>ROBLOX BYPASS + DEOBF PRO</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -87,35 +87,79 @@
 </head>
 <body>
   <div class="container">
-    <h1>🔓 ROBLOX BYPASS + DEOBF</h1>
+    <h1>ROBLOX BYPASS + DEOBF</h1>
     <p class="subtitle">Bỏ mật khẩu → Lấy script → Giải mã ASCII → Copy 1 click</p>
 
     <div class="input-group">
       <input type="text" id="urlInput" placeholder="ID hoặc link (ví dụ: 68628fd8...)" />
-      <button onclick="fetchScript()">🚀 LẤY SCRIPT</button>
+      <button onclick="fetchScript()">LẤY SCRIPT</button>
     </div>
 
     <div class="output" id="output">
       <pre id="scriptContent">Nhập ID → nhấn "LẤY SCRIPT"...</pre>
-      <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">📋 COPY</button>
+      <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">COPY</button>
     </div>
 
     <div class="input-group" style="margin-top:10px; display:none;" id="deobfSection">
-      <button class="btn-deobf" onclick="deobfuscateAscii()">⚡ DEOBFUSCATE ASCII</button>
+      <button class="btn-deobf" onclick="deobfuscateAscii()">DEOBFUSCATE ASCII</button>
     </div>
 
     <div class="output" id="deobfOutput" style="display:none; margin-top:20px;">
       <pre id="deobfContent">...</pre>
-      <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">📋 COPY DEOBF</button>
+      <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">COPY DEOBF</button>
     </div>
 
     <div class="status" id="status"></div>
   </div>
 
-  <footer>© 2025 Roblox Bypass + Deobf Pro – Made with 💚</footer>
+  <footer>© 2025 Roblox Bypass + Deobf Pro – Made with [Green Heart]</footer>
 
   <script>
     // === NHẬN DIỆN ID ===
+    function extractId(input) {
+      if (!input) return null;
+      input = input.trim();
+      if (input.includes('http')) {
+        try { return new URL(input).pathname.replace(/^\//, ''); } catch { return null; }
+      }
+      return input;
+    }
+
+    // === LẤY SCRIPT ===
+    async function fetchScript() {
+      const rawInput = document.getElementById('urlInput').value;
+      const id = extractId(rawInput);
+      const status = document.getElementById('status');
+      const output = document.getElementById('scriptContent');
+      const copyBtn = document.getElementById('copyBtn');
+      const deobfSection = document.getElementById('deobfSection');
+
+      if (!id) {
+        status.innerHTML = "Nhập ID hợp lệ!";
+        return;
+      }
+
+      status.innerHTML = "Đang lấy...";
+      output.textContent = "Loading...";
+      copyBtn.style.display = "none";
+      deobfSection.style.display = "none";
+
+      try {
+        const res = await fetch(`/.netlify/functions/proxy/${id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+
+        output.textContent = text;
+        window.currentScript = text;
+        copyBtn.style.display = "block";
+        deobfSection.style.display = "flex";
+        status.innerHTML = `Đã lấy script từ: <code>${id}</code>`;
+      } catch (err) {
+        output.textContent = "Lỗi lấy script.";
+        status.innerHTML = `Lỗi: ${err.message}`;
+      }
+    }
+
     // === GIẢI MÃ ASCII (\8, \9, \10, \13, \108, tab, space, ký tự lạ...) ===
     function deobfuscateAscii() {
       const script = window.currentScript || "";
@@ -123,20 +167,17 @@
       const deobfContent = document.getElementById('deobfContent');
       const copyDeobfBtn = document.getElementById('copyDeobfBtn');
       const status = document.getElementById('status');
-    
-      // Tìm tất cả chuỗi loadstring("...")
+
       const loadstringRegex = /loadstring\("([^"]*)"\)/g;
       let hasMatch = false;
       let decodedScript = script;
-    
+
       decodedScript = script.replace(loadstringRegex, (match, encoded) => {
         hasMatch = true;
         try {
-          // Cách 1: Dùng eval để giải mã chính xác \8, \9, \10, \13, tab, space...
           const decoded = eval(`"${encoded}"`);
           return `loadstring("${decoded}")`;
         } catch (e) {
-          // Cách 2: Nếu eval lỗi → dùng parse octal thủ công
           const manual = encoded.replace(/\\(\d{1,3})/g, (m, code) => {
             const num = parseInt(code, 8);
             return num >= 32 && num <= 126 ? String.fromCharCode(num) : m;
@@ -144,7 +185,7 @@
           return `loadstring("${manual}")`;
         }
       });
-    
+
       if (!hasMatch) {
         deobfContent.textContent = "Không tìm thấy loadstring để giải mã.";
         copyDeobfBtn.style.display = "none";
@@ -152,12 +193,37 @@
         deobfContent.textContent = decodedScript;
         window.deobfScript = decodedScript;
         copyDeobfBtn.style.display = "block";
-        status.innerHTML = "⚡ ĐÃ GIẢI MÃ ASCII HOÀN HẢO!";
+        status.innerHTML = "ĐÃ GIẢI MÃ ASCII HOÀN HẢO!";
       }
-    
+
       deobfOutput.style.display = "block";
     }
 
+    // === COPY ===
+    function copyScript() {
+      navigator.clipboard.writeText(window.currentScript || "");
+      alert("ĐÃ COPY SCRIPT GỐC!");
+    }
+
+    function copyDeobf() {
+      navigator.clipboard.writeText(window.deobfScript || "");
+      alert("ĐÃ COPY SCRIPT ĐÃ GIẢI MÃ!");
+    }
+
+    // === NHẤN ENTER ===
+    document.getElementById('urlInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') fetchScript();
+    });
+
+    // === TỰ ĐỘNG LOAD KHI MỞ TRANG ===
+    window.addEventListener('load', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlId = urlParams.get('id');
+      if (urlId) {
+        document.getElementById('urlInput').value = urlId;
+        fetchScript();
+      }
+    });
   </script>
 </body>
 </html>
