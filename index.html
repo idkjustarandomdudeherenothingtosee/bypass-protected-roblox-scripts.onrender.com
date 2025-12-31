@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -85,33 +85,33 @@
   <div class="container">
     <header>
       <h1>ROBLOX BYPASS + DEOBF PRO</h1>
-      <p class="subtitle">Lấy script → Deobf ASCII chuẩn 100% → Copy 1 click</p>
+      <p class="subtitle">Get scripts → Deobf ASCII 100% → Copy with one click</p>
     </header>
 
     <div class="input-group">
-      <input type="text" id="urlInput" placeholder="ID hoặc link (68628fd8...)" />
+      <input type="text" id="urlInput" placeholder="Script ID or link (68628fd8...)" />
       <button onclick="fetchScript()" id="fetchBtn">
-        LẤY SCRIPT
+        <i class="fas fa-download"></i> GET SCRIPT
       </button>
     </div>
 
     <div class="output" id="output">
-      <pre id="scriptContent">-- Nhập ID → nhấn "LẤY SCRIPT"...</pre>
+      <pre id="scriptContent">-- Enter ID → click "GET SCRIPT"...</pre>
       <button class="copy-btn" id="copyBtn" onclick="copyScript()" style="display:none">
-        COPY OBF
+        <i class="far fa-copy"></i> COPY OBF
       </button>
     </div>
 
     <div style="text-align:center; margin:20px 0; display:none;" id="deobfSection">
       <button class="btn-deobf" onclick="deobfuscateAscii()" id="deobfBtn">
-        DEOBF NÂNG CAO
+        <i class="fas fa-code"></i> ADVANCED DEOBFUSCATE
       </button>
     </div>
 
     <div class="output" id="deobfOutput" style="display:none;">
-      <pre id="deobfContent">-- Kết quả sẽ hiện ở đây...</pre>
+      <pre id="deobfContent">-- Result will appear here...</pre>
       <button class="copy-btn" id="copyDeobfBtn" onclick="copyDeobf()" style="display:none">
-        COPY DEOBF
+        <i class="far fa-copy"></i> COPY DEOBF
       </button>
     </div>
 
@@ -127,6 +127,26 @@
     // Auto fill
     document.getElementById('urlInput').value = DEFAULT_ID;
 
+    // Proxy function embedded directly
+    async function proxyFetch(id) {
+      const url = `https://protected-roblox-scripts.onrender.com/${id}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: { 'User-Agent': 'Roblox/WinInet' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const text = await response.text();
+        return text;
+      } catch (error) {
+        throw new Error(`Proxy error: ${error.message}`);
+      }
+    }
+
     function getId() {
       let input = document.getElementById('urlInput').value.trim();
       if (!input) return DEFAULT_ID;
@@ -140,59 +160,51 @@
 
     async function fetchScript() {
       const id = getId();
-      const api = `/.netlify/functions/proxy/${id}`;
       const status = document.getElementById('status');
       const output = document.getElementById('scriptContent');
       const copyBtn = document.getElementById('copyBtn');
       const deobfSection = document.getElementById('deobfSection');
       const fetchBtn = document.getElementById('fetchBtn');
 
-      status.innerHTML = '<span class="loading"></span> Đang bypass...';
+      status.innerHTML = '<span class="loading"></span> Bypassing...';
       fetchBtn.disabled = true;
 
       try {
-        const res = await fetch(api);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = (await res.text()).trim();
+        const text = await proxyFetch(id);
 
-        if (!text || text.length < 50) throw new Error('Script rỗng');
+        if (!text || text.length < 50) throw new Error('Empty script');
 
         currentScript = text;
         output.textContent = text;
         copyBtn.style.display = "block";
         deobfSection.style.display = "block";
-        status.innerHTML = '<span style="color:var(--success)">LẤY SCRIPT THÀNH CÔNG!</span>';
+        status.innerHTML = '<span style="color:var(--success)">SCRIPT RETRIEVED SUCCESSFULLY!</span>';
       } catch (err) {
-        status.innerHTML = `<span style="color:var(--error)">Lỗi: ${err.message}</span>`;
-        output.textContent = `-- Không lấy được script --`;
+        status.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+        output.textContent = `-- Could not retrieve script --`;
       } finally {
         fetchBtn.disabled = false;
       }
     }
 
-    // --- NÂNG CẤP DEOBF: hỗ trợ \xNN, \uNNNN, \u{...}, \DDD (decimal/octal thử), string.char(...), "a".."b" ghép chuỗi ---
+    // --- ADVANCED DEOBFUSCATION: supports \xNN, \uNNNN, \u{...}, \DDD (decimal/octal), string.char(...), "a".."b" string concatenation ---
     function deobfuscateAscii() {
       if (!currentScript) return;
 
       const status = document.getElementById('status');
-      status.innerHTML = '<span class="loading"></span> Đang deobf nâng cao...';
+      status.innerHTML = '<span class="loading"></span> Advanced deobfuscation in progress...';
 
       setTimeout(() => {
         let code = currentScript;
 
         // Helper: try parse number in decimal first; if out of 0-255, try octal; fallback to decimal
         function parseCodeNumber(numStr) {
-          // Trim spaces
           numStr = numStr.trim();
-          // If starts with 0x or 0X => hex
           if (/^0x/i.test(numStr)) return parseInt(numStr, 16);
-          // If contains only 0-7 digits -> likely octal (but ambiguous). We'll try decimal first then octal as fallback.
           const asDec = parseInt(numStr, 10);
           if (!Number.isNaN(asDec) && asDec >= 0 && asDec <= 255) return asDec;
-          // try octal
           const asOct = parseInt(numStr, 8);
           if (!Number.isNaN(asOct) && asOct >= 0 && asOct <= 255) return asOct;
-          // last attempt: hex
           const asHex = parseInt(numStr, 16);
           if (!Number.isNaN(asHex)) return asHex;
           return null;
@@ -209,30 +221,24 @@
         code = code.replace(/\\([0-9]{1,3})/g, (m, numStr) => {
           const n = parseCodeNumber(numStr);
           if (n === null) return m;
-          // printable range check; if outside visible ASCII still convert (some scripts use extended)
           return String.fromCharCode(n);
         });
 
         // 4) Decode Lua string.char(...) or JS String.fromCharCode(...) patterns
-        // string.char(108,111,97)
         code = code.replace(/string\.char\s*\(\s*([0-9\s,]+)\s*\)/gi, (m, list) => {
           const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
           return arr.map(n => String.fromCharCode(n)).join('');
         });
-        // String.fromCharCode(65,66)
         code = code.replace(/String\.fromCharCode\s*\(\s*([0-9\s,]+)\s*\)/g, (m, list) => {
           const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
           return arr.map(n => String.fromCharCode(n)).join('');
         });
 
         // 5) Join concatenated quoted strings "a".."b" (Lua) and "a" + "b" (JS) iteratively
-        // We'll perform multiple passes to catch nested cases
         function joinConcats(s) {
           let changed = false;
-          // Lua: "..." .. "..."
           s = s.replace(/'([^']*)'\s*\.\.\s*'([^']*)'/g, (m, a, b) => { changed = true; return `'${a + b}'`; });
           s = s.replace(/"([^"]*)"\s*\.\.\s*"([^"]*)"/g, (m, a, b) => { changed = true; return `"${a + b}"`; });
-          // JS: "a" + "b"
           s = s.replace(/'([^']*)'\s*\+\s*'([^']*)'/g, (m, a, b) => { changed = true; return `'${a + b}'`; });
           s = s.replace(/"([^"]*)"\s*\+\s*"([^"]*)"/g, (m, a, b) => { changed = true; return `"${a + b}"`; });
           return { s, changed };
@@ -244,18 +250,14 @@
           if (!res.changed) break;
         }
 
-        // 6) Replace escaped quotes inside strings (for readability)
-        // e.g. "Hello \"World\"" -> "Hello "World"" (we won't remove escapes fully, but unescape common patterns)
+        // 6) Replace escaped quotes inside strings
         code = code.replace(/\\(["'])/g, '$1');
 
-        // 7) Optional tidy: if there are sequences of digits separated by commas inside parentheses not handled above,
-        //    try a generic pattern: (123,98,97) -> "..." but be conservative and only when preceded by certain functions or when stand-alone.
+        // 7) Convert digit sequences in parentheses to strings when appropriate
         code = code.replace(/\(\s*([0-9]{1,3}(?:\s*,\s*[0-9]{1,3})+)\s*\)/g, (m, list) => {
-          // only convert small lists (<100 chars) and when there's no identifier immediately before '(' (to avoid changing function args)
           try {
             const arr = list.split(/\s*,\s*/).map(s => parseCodeNumber(s) || 0);
             if (arr.length > 0 && arr.length <= 100) {
-              // convert to string if all values are printable
               if (arr.every(n => n >= 9 && n <= 127)) {
                 return `("${arr.map(n => String.fromCharCode(n)).join('')}")`;
               }
@@ -264,13 +266,12 @@
           return m;
         });
 
-        // 8) Final pass: normalize common escaped forms such as \\n -> newline, \\t -> tab
+        // 8) Normalize common escaped characters
         code = code.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t');
 
         // 9) Multiple passes to decode nested or repeated encodings
         for (let pass = 0; pass < 6; pass++) {
           let before = code;
-          // reapply hex and numeric decode to catch newly exposed escapes
           code = code.replace(/\\x([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
           code = code.replace(/\\u\{([0-9A-Fa-f]+)\}/g, (m, h) => String.fromCodePoint(parseInt(h, 16)));
           code = code.replace(/\\u([0-9A-Fa-f]{4})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
@@ -279,12 +280,10 @@
             if (n === null) return m;
             return String.fromCharCode(n);
           });
-          // string.char again
           code = code.replace(/string\.char\s*\(\s*([0-9\s,]+)\s*\)/gi, (m, list) => {
             const arr = list.split(',').map(s => parseCodeNumber(s) || 0);
             return arr.map(n => String.fromCharCode(n)).join('');
           });
-          // join concatenations again
           const res = joinConcats(code);
           code = res.s;
           if (code === before) break;
@@ -294,7 +293,7 @@
         document.getElementById('deobfContent').textContent = code;
         document.getElementById('deobfOutput').style.display = "block";
         document.getElementById('copyDeobfBtn').style.display = "block";
-        status.innerHTML = '<span style="color:var(--success)">DEOBF HOÀN TẤT!</span>';
+        status.innerHTML = '<span style="color:var(--success)">DEOBFUSCATION COMPLETE!</span>';
       }, 150);
     }
 
@@ -304,7 +303,7 @@
       navigator.clipboard.writeText(text);
       const btn = document.getElementById(btnId);
       const old = btn.innerHTML;
-      btn.innerHTML = 'ĐÃ COPY!';
+      btn.innerHTML = '<i class="fas fa-check"></i> COPIED!';
       setTimeout(() => btn.innerHTML = old, 2000);
     }
 
